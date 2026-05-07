@@ -1,4 +1,4 @@
-# UFFUN.AI - Centralized Emergency Routing Hub
+# uffun - Centralized Emergency Routing Hub
 
 ## Domain: Intelligent Systems and Data 
 UFFUN.AI is an AI-powered emergency response and call management platform built for the Philippine context, where callers often face too many local hotline numbers and unclear routing paths during emergencies.
