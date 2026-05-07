@@ -18,7 +18,7 @@ In time-critical situations, every second matters.
 
 ## Our Solution
 
-> UFFUN, means "tulong" or "help" in ibanag—a dialect in the northern region of the Philippines.
+> **UFFUN, means "tulong" or "help" in ibanag—a dialect in the northern region of the Philippines.**
 
 UFFUN acts as a centralized AI layer between callers and responders.
 
