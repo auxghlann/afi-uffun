@@ -31,14 +31,14 @@ Instead of forcing people to memorize multiple numbers, the system allows a user
 
 ### Live Demo
 
-- [UFFUN.AI Live App](https://afi-uffun-a334d865ae0c.herokuapp.com/login)
+- [UFFUN Live App](https://afi-uffun-a334d865ae0c.herokuapp.com/login)
 
 ### Realistic Scenario
 
 A caller from a rural municipality reports:
 > "Help! My father is having a heart attack."
 
-With UFFUN.AI:
+With UFFUN:
 - the system classifies this as a **medical emergency**,
 - maps the caller location,
 - identifies nearby medical responders,
