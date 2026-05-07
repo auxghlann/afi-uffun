@@ -2,12 +2,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+import logging
 
-from app.services.agent import agent
-from app.services.state import EmergencyState
-from app.services.nodes import geo_router_node, build_dispatch_confirmation
-from app.services.review_store import upsert_review, get_review
-from app.services.report_store import upsert_emergency_report
+from app.services.ai import agent, EmergencyState, geo_router_node, build_dispatch_confirmation
+from app.services.ai.nodes import geocode_location_node
+from app.services.database import upsert_review, get_review, upsert_emergency_report
 
 router = APIRouter()
 
@@ -74,27 +73,43 @@ async def process_call_message(request: CallRequest):
         pending_review = final_state.get("pending_review")
 
         if final_state.get("status") == "Routed":
-            upsert_emergency_report(
+            await upsert_emergency_report(
                 call_id=request.call_id,
                 status="auto_routed",
                 extracted_details=final_state.get("extracted_details", {}),
-                location=final_state.get("location", {}),
+                location=final_state.get("resolved_location") or final_state.get("location", {}),
                 routed_hotlines=routed_hotlines
             )
 
         if final_state.get("status") == "pending_review":
             extracted = final_state.get("extracted_details", {})
-            location = final_state.get("location", {})
+            # Use resolved_location if available, otherwise run geocoding inline
+            resolved_location = final_state.get("resolved_location")
+            if not resolved_location:
+                resolved_location = geocode_location_node({
+                    "extracted_details": extracted,
+                    "location": final_state.get("location", {})
+                }).get("resolved_location", final_state.get("location", {}))
+
             recommendations = geo_router_node({
-                "location": location,
+                "resolved_location": resolved_location,
                 "extracted_details": extracted
             }).get("routed_hotlines", [])
 
-            upsert_review(request.call_id, {
+            # Persist pending calls so they appear immediately on the admin dashboard.
+            await upsert_emergency_report(
+                call_id=request.call_id,
+                status="pending_review",
+                extracted_details=extracted,
+                location=resolved_location,
+                routed_hotlines=recommendations
+            )
+
+            await upsert_review(request.call_id, {
                 "call_id": request.call_id,
                 "review_status": "pending",
                 "extracted_details": extracted,
-                "location": location,
+                "location": resolved_location,
                 "recommended_hotlines": recommendations,
                 "review_notes": ""
             })
@@ -107,12 +122,13 @@ async def process_call_message(request: CallRequest):
         )
 
     except Exception as e:
+        logging.exception("Error while processing /api/call/message")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/status", response_model=CallResponse)
 async def get_call_status(call_id: str):
-    review = get_review(call_id)
+    review = await get_review(call_id)
     if not review:
         return CallResponse(response_text="", review_status=None, pending_review=None)
 

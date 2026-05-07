@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PhoneOff, MapPin, Loader2, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -101,7 +101,7 @@ const CallInterface = () => {
 
     try {
       // Send to FastAPI backend
-      const res = await fetch("http://localhost:8000/api/call/message", {
+      const res = await fetch("/api/call/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,7 +111,16 @@ const CallInterface = () => {
         })
       });
 
-      if (!res.ok) throw new Error("Backend request failed");
+      if (!res.ok) {
+        let backendDetail = "Backend request failed";
+        try {
+          const errData = await res.json();
+          backendDetail = errData?.detail || backendDetail;
+        } catch {
+          // Ignore JSON parse errors and keep fallback detail.
+        }
+        throw new Error(backendDetail);
+      }
       
       const data = await res.json();
       
@@ -122,7 +131,7 @@ const CallInterface = () => {
         setReviewStatus(data.review_status);
         if (data.review_status === 'pending' && !statusPollRef.current) {
           statusPollRef.current = window.setInterval(async () => {
-            const statusRes = await fetch(`http://localhost:8000/api/call/status?call_id=${callId}`);
+            const statusRes = await fetch(`/api/call/status?call_id=${callId}`);
             const statusData = await statusRes.json();
             if (statusData.review_status && statusData.review_status !== 'pending') {
               setReviewStatus(statusData.review_status);
@@ -145,7 +154,8 @@ const CallInterface = () => {
 
     } catch (error) {
       console.error("Error communicating with backend", error);
-      setMessages([...newMessages, { role: 'ai', content: "Connection error. Please try again." }]);
+      const reason = error instanceof Error ? error.message : "Connection error";
+      setMessages([...newMessages, { role: 'ai', content: `Connection error: ${reason}` }]);
     } finally {
       setIsProcessing(false);
     }

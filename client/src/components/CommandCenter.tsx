@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { clearRole } from '../utils/auth';
+import IncidentMap from './IncidentMap';
 
 interface Hotline {
   id: number;
@@ -11,6 +13,11 @@ interface Hotline {
 interface ReviewItem {
   call_id: string;
   extracted_details: Record<string, string>;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+    [key: string]: string | number | undefined;
+  };
   recommended_hotlines: Hotline[];
   review_status: string;
   review_notes: string;
@@ -26,16 +33,24 @@ const CommandCenter = () => {
   const fetchPending = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/admin/pending');
+      const res = await fetch('/api/admin/pending');
       const data = await res.json();
-      setPending(data || {});
+      if (Array.isArray(data)) {
+        const pendingByCallId = data.reduce((acc: Record<string, ReviewItem>, item: ReviewItem) => {
+          if (item?.call_id) acc[item.call_id] = item;
+          return acc;
+        }, {});
+        setPending(pendingByCallId);
+      } else {
+        setPending(data || {});
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const fetchHotlines = async () => {
-    const res = await fetch('http://localhost:8000/api/admin/hotlines');
+    const res = await fetch('/api/admin/hotlines');
     const data = await res.json();
     setHotlines(data || []);
   };
@@ -49,7 +64,7 @@ const CommandCenter = () => {
 
   const handleApprove = async (callId: string) => {
     const overrideIds = selectedOverrides[callId] || [];
-    await fetch('http://localhost:8000/api/admin/review/approve', {
+    await fetch('/api/admin/review/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -61,7 +76,7 @@ const CommandCenter = () => {
   };
 
   const handleReject = async (callId: string) => {
-    await fetch('http://localhost:8000/api/admin/review/reject', {
+    await fetch('/api/admin/review/reject', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ call_id: callId })
@@ -91,12 +106,20 @@ const CommandCenter = () => {
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient mb-1">Command Center</h1>
             <p className="text-neutral-400 font-medium">Human-in-the-middle review queue</p>
           </div>
-          <button
-            onClick={() => { clearRole(); window.location.href = '/login'; }}
-            className="glass-panel hover:bg-white/10 px-6 py-2.5 rounded-xl font-medium transition-all"
-          >
-            Sign out
-          </button>
+          <div className="flex gap-3">
+            <Link
+              to="/admin/dashboard"
+              className="glass-panel hover:bg-white/10 px-5 py-2.5 rounded-xl font-medium transition-all"
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={() => { clearRole(); window.location.href = '/login'; }}
+              className="glass-panel hover:bg-white/10 px-6 py-2.5 rounded-xl font-medium transition-all"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between px-2">
@@ -140,6 +163,30 @@ const CommandCenter = () => {
                   <div className="text-red-400 font-semibold text-lg drop-shadow-[0_0_10px_rgba(248,113,113,0.3)]">
                     {item.extracted_details?.emergency_types || 'N/A'}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Location</div>
+                  {item.location?.latitude != null && item.location?.longitude != null ? (
+                    <IncidentMap
+                      center={[item.location.latitude, item.location.longitude]}
+                      zoom={15}
+                      markers={[
+                        {
+                          lat: item.location.latitude,
+                          lon: item.location.longitude,
+                          type: item.extracted_details?.emergency_types
+                        }
+                      ]}
+                      variant="single"
+                      heightClassName="h-40"
+                      showAttribution={false}
+                    />
+                  ) : (
+                    <div className="text-neutral-400 font-medium bg-white/5 p-4 rounded-xl border border-white/5">
+                      Location unavailable
+                    </div>
+                  )}
                 </div>
               </div>
 

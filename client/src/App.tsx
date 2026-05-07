@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import CallInterface from './components/CallInterface'
 import LoginPage from './components/LoginPage'
 import CommandCenter from './components/CommandCenter'
+import AdminDashboard from './components/AdminDashboard'
 import { getRole } from './utils/auth'
 
 const ProtectedRoute = ({ role, children }: { role: 'caller' | 'admin', children: React.ReactNode }) => {
@@ -22,6 +23,14 @@ function App() {
           element={
             <ProtectedRoute role="caller">
               <CallInterface />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute role="admin">
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

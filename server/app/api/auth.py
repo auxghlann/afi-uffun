@@ -3,8 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from uuid import uuid4
 
-from app.database import SessionLocal
-from app.models.schema import User
+from app.services.database import get_user_by_email
 
 router = APIRouter()
 
@@ -15,17 +14,22 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     role: str
-    user_id: int
+    user_id: str
 
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest):
-    db = SessionLocal()
-    try:
-        user = db.query(User).filter(User.email == request.email).first()
-        if not user or user.password_hash != request.password:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+    user = await get_user_by_email(request.email)
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # In a real app, use password hashing (bcrypt/argon2)
+    if user.get("password_hash") != request.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        token = str(uuid4())
-        return LoginResponse(token=token, role=user.role, user_id=user.id)
-    finally:
-        db.close()
+    token = str(uuid4())
+    return LoginResponse(
+        token=token, 
+        role=user.get("role", "caller"), 
+        user_id=str(user.get("id"))
+    )

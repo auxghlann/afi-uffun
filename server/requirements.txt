@@ -1,8 +1,11 @@
 fastapi[standard]
 uvicorn
 sqlalchemy
+psycopg2-binary
 langgraph
 langchain-groq
 pydantic
 python-dotenv
 toons
+gunicorn
+httpx

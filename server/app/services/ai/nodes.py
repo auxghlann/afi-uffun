@@ -1,17 +1,21 @@
+import logging
 from typing import Literal, List
 from langchain_core.messages import SystemMessage, ToolMessage, AIMessage
 from langgraph.graph import END
+import httpx
 from app.core.llm import get_operator_llm
 
-from app.services.state import EmergencyState
-from app.services.schema import EmergencyDetails
-from app.services.utils import haversine_distance
+from .state import EmergencyState
+from .schema import EmergencyDetails
+from ..utils import haversine_distance
+
+logger = logging.getLogger(__name__)
 
 
 def _load_raw_toon(filename: str) -> str:
     """Load a TOON file as raw text for direct injection into LLM prompts."""
     from pathlib import Path
-    data_dir = Path(__file__).parent.parent / "data"
+    data_dir = Path(__file__).parent.parent.parent / "data"
     with open(data_dir / filename, "r", encoding="utf-8") as f:
         return f.read()
 
@@ -40,6 +44,11 @@ ABSOLUTE RULES (NEVER BREAK THESE):
 - You MUST know WHAT the emergency is before dispatching. If the caller only says "help", "tulong", or something vague without specifying what is happening, you MUST ask: "Ano po ang nangyari?" or "What is the emergency?". NEVER dispatch without knowing the emergency type.
 - You MUST ask for location details before dispatching. If the caller hasn't mentioned where they are, ask.
 - When using the EmergencyDetails tool, the emergency_types field must be COMMA-separated (e.g. "Police, Medical"), NOT pipe-separated.
+- LOCATION EXTRACTION RULES (CRITICAL):
+  * If the caller mentions a specific place name (landmark, street, barangay, city, mall, etc.), extract it into `location_name` as a short, clean, geocodable string (e.g. "SM Mall, Tuguegarao City" or "Barangay Centro, Solano, Nueva Vizcaya").
+  * If the caller says they are reporting ON BEHALF of someone else at a different place, use THAT place as `location_name`, not the caller's GPS.
+  * If no specific location was mentioned in the conversation, leave `location_name` as an empty string ("").
+  * Always fill `location_details` with the full, human-readable location description regardless.
 
 SMART DISPATCH RULES:
 - Use the Emergency Intelligence table to INFER severity, people_affected, and is_ongoing whenever the emergency type is clear. DO NOT ask the caller redundant questions.
@@ -166,14 +175,90 @@ def _resolve_preferred_types(emergency_types_str: str) -> List[str]:
     seen = set()
     return [x for x in preferred if not (x in seen or seen.add(x))]
 
+# ---------------------------------------------------------------------------
+# Geocoding node — resolves location_name to lat/lng via Nominatim (free OSM)
+# ---------------------------------------------------------------------------
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_HEADERS = {"User-Agent": "AfiUffunEmergencyHub/1.0 (hackathon project)"}
+
+
+def geocode_location_node(state: EmergencyState) -> dict:
+    """Resolve extracted location_name to lat/lng via Nominatim.
+
+    Priority:
+      1. If location_name was explicitly extracted from speech → geocode via Nominatim
+      2. If geocoding fails or location_name is empty → fall back to caller's GPS silently
+    """
+    extracted = state.get("extracted_details", {})
+    location_name = str(extracted.get("location_name", "")).strip()
+    gps = state.get("location", {})
+    gps_lat = gps.get("latitude", 17.6134)
+    gps_lon = gps.get("longitude", 121.7269)
+
+    # --- Try geocoding if an explicit location was extracted ---
+    if location_name:
+        try:
+            resp = httpx.get(
+                NOMINATIM_URL,
+                params={
+                    "q": location_name,
+                    "format": "json",
+                    "limit": 1,
+                    "countrycodes": "ph",
+                },
+                headers=NOMINATIM_HEADERS,
+                timeout=5.0,
+            )
+            resp.raise_for_status()
+            results = resp.json()
+
+            if results:
+                resolved_lat = float(results[0]["lat"])
+                resolved_lon = float(results[0]["lon"])
+                logger.info(
+                    "Geocoded '%s' → lat=%.4f, lon=%.4f (source=extracted)",
+                    location_name, resolved_lat, resolved_lon
+                )
+                return {
+                    "resolved_location": {
+                        "latitude": resolved_lat,
+                        "longitude": resolved_lon,
+                        "location_name": location_name,
+                        "source": "extracted",
+                    }
+                }
+
+            # Nominatim returned empty list → fall through to GPS
+            logger.warning("Nominatim returned no results for '%s'. Falling back to GPS.", location_name)
+
+        except Exception as exc:
+            logger.warning("Geocoding failed for '%s': %s. Falling back to GPS.", location_name, exc)
+
+    # --- Fallback: use caller's GPS ---
+    logger.info("Using GPS fallback: lat=%.4f, lon=%.4f", gps_lat, gps_lon)
+    return {
+        "resolved_location": {
+            "latitude": gps_lat,
+            "longitude": gps_lon,
+            "location_name": "",
+            "source": "gps",
+        }
+    }
+
+
 def geo_router_node(state: EmergencyState):
-    """Calculates the nearest appropriate hotline(s) based on GPS location and emergency types."""
+    """Calculates the nearest appropriate hotline(s) based on RESOLVED location and emergency types.
+
+    Uses resolved_location (geocoded from speech OR GPS fallback) instead of raw GPS.
+    """
     from app.database import SessionLocal
     from app.models.schema import Hotline
 
-    user_loc = state.get("location", {})
-    user_lat = user_loc.get("latitude", 17.6134)
-    user_lon = user_loc.get("longitude", 121.7269)
+    # Use resolved_location (set by geocode_location_node) as the authoritative coords
+    resolved_loc = state.get("resolved_location") or state.get("location", {})
+    user_lat = resolved_loc.get("latitude", 17.6134)
+    user_lon = resolved_loc.get("longitude", 121.7269)
 
     extracted = state.get("extracted_details", {})
     emergency_types_str = extracted.get("emergency_types", "Rescue")

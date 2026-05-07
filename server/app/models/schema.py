@@ -28,6 +28,19 @@ class EmergencyReport(Base):
     routed_hotlines = Column(Text)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
+class EmergencyReview(Base):
+    __tablename__ = "emergency_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    call_id = Column(String, unique=True, index=True)
+    review_status = Column(String, index=True) # pending, approved, rejected
+    extracted_details = Column(Text) # JSON string
+    location = Column(Text) # JSON string
+    recommended_hotlines = Column(Text) # JSON string
+    approved_hotlines = Column(Text) # JSON string
+    review_notes = Column(Text)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
 class User(Base):
     __tablename__ = "users"
 

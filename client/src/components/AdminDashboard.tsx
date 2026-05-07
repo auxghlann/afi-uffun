@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapContainer, TileLayer, CircleMarker, Tooltip as LeafletTooltip } from 'react-leaflet';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -15,6 +14,7 @@ import {
 } from 'recharts';
 import { Activity, ClipboardList, ShieldAlert, MapPinned } from 'lucide-react';
 import { clearRole } from '../utils/auth';
+import IncidentMap from './IncidentMap';
 
 interface MetricsResponse {
   total_reports: number;
@@ -66,10 +66,10 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       const [metricsRes, breakdownRes, heatmapRes, reportsRes] = await Promise.all([
-        fetch('http://localhost:8000/api/admin/metrics'),
-        fetch('http://localhost:8000/api/admin/breakdown'),
-        fetch('http://localhost:8000/api/admin/heatmap'),
-        fetch('http://localhost:8000/api/admin/reports?limit=12')
+        fetch('/api/admin/metrics'),
+        fetch('/api/admin/breakdown'),
+        fetch('/api/admin/heatmap'),
+        fetch('/api/admin/reports?limit=12')
       ]);
 
       const metricsData = await metricsRes.json();
@@ -251,29 +251,7 @@ const AdminDashboard = () => {
               <h2 className="text-lg font-semibold">Tuguegarao Heatmap</h2>
               <span className="text-xs text-neutral-500">Live incident clustering</span>
             </div>
-            <div className="h-[360px] rounded-2xl overflow-hidden border border-white/10">
-              <MapContainer center={center} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
-                <TileLayer
-                  attribution="&copy; OpenStreetMap contributors"
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                {heatmap.map((point, idx) => (
-                  <CircleMarker
-                    key={`${point.lat}-${point.lon}-${idx}`}
-                    center={[point.lat, point.lon]}
-                    radius={6 + point.weight * 3}
-                    pathOptions={{ color: '#ff4500', fillColor: '#ff4500', fillOpacity: 0.35 }}
-                  >
-                    <LeafletTooltip>
-                      <div className="text-xs">
-                        <div>Type: {point.type || 'N/A'}</div>
-                        <div>Severity: {point.severity || 'N/A'}</div>
-                      </div>
-                    </LeafletTooltip>
-                  </CircleMarker>
-                ))}
-              </MapContainer>
-            </div>
+            <IncidentMap center={center} zoom={12} markers={heatmap} variant="heat" heightClassName="h-[360px]" />
           </div>
 
           <div className="glass rounded-2xl p-6">

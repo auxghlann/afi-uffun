@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from langchain_core.messages import HumanMessage
-from app.services.agent import agent, EmergencyState
+from app.services.ai import agent, EmergencyState
 
 # Load .env file
 load_dotenv()
