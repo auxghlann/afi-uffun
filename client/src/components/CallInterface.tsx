@@ -347,6 +347,9 @@ const CallInterface = () => {
               <Play className="w-6 h-6 text-white ml-1" />
             </button>
           </div>
+          <p className="text-center text-xs text-neutral-600 mt-2 pb-1 pointer-events-none select-none">
+            📝 Demo mode — textual input only. Voice interaction is not active.
+          </p>
         </div>
       </div>
     </div>

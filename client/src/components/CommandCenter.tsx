@@ -105,6 +105,10 @@ const CommandCenter = () => {
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient mb-1">Command Center</h1>
             <p className="text-neutral-400 font-medium">Human-in-the-middle review queue</p>
+            <p className="mt-2 text-xs text-yellow-500/70 flex items-center gap-1.5">
+              <span>⚠️</span>
+              <span>Simulation only — approving or rejecting here does not trigger any real-world dispatch.</span>
+            </p>
           </div>
           <div className="flex gap-3">
             <Link
