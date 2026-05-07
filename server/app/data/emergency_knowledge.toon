@@ -1,0 +1,12 @@
+emergencies[11]{keywords,types,default_severity,people_affected,is_ongoing}:
+  bomber|bomb|bomba,Police|Rescue,High,Many,true
+  shooting|baril|binaril,Police|Medical,High,Many,true
+  stabbing|saksak,Police|Medical,High,1-few,true
+  fire|sunog,Fire|Rescue,High,Many,true
+  flood|baha,Rescue,High,Many,true
+  earthquake|lindol,Rescue|Medical,High,Many,true
+  accident|aksidente|nabangga,Police|Medical,High,Few,true
+  heart attack|atake sa puso,Medical,High,1,true
+  robbery|nakaw|magnanakaw,Police,Medium,1-few,true
+  missing person|nawawala,Police,Medium,1,false
+  domestic violence|pambubugbog,Police|Medical,Medium,1-few,true

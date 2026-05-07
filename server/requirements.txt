@@ -1,0 +1,8 @@
+fastapi[standard]
+uvicorn
+sqlalchemy
+langgraph
+langchain-groq
+pydantic
+python-dotenv
+toons
