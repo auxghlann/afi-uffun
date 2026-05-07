@@ -18,7 +18,9 @@ In time-critical situations, every second matters.
 
 ## Our Solution
 
-UFFUN.AI acts as a centralized AI layer between callers and responders.
+> UFFUN, means "tulong" or "help" in ibanag, a dialect in the northern region in the Philippines
+
+UFFUN acts as a centralized AI layer between callers and responders.
 
 Instead of forcing people to memorize multiple numbers, the system allows a user to describe the emergency in natural language. UFFUN then:
 - understands the report,
