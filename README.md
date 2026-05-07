@@ -3,16 +3,18 @@
 *Every second counts.*
 
 ## Domain: Intelligent Systems and Data 
-UFFUN is an AI-powered emergency response and call management platform built for the Philippine context, where callers often face too many local hotline numbers and unclear routing paths during emergencies.
+UFFUN is an AI-powered emergency response and call management platform built for the Philippine context, especially in rural areas, where callers often face too many local hotline numbers.
 
 ## Problem We Addressed
 
 In many Philippine areas, especially outside major cities, emergency response can be delayed because:
-- people do not memorize the correct hotline for their exact location,
-- calls may be redirected manually before reaching the proper responder,
-- dispatch centers receive incomplete or unclear emergency details.
+- people do not memorize the correct hotline for their exact location.
 
-Even with a national hotline (`911`), coverage and responsiveness can vary by location. In time-critical situations, every second matters.
+For a  person in a panic, recall is almost impossible.
+
+Even with a national hotline (`911`), coverage and responsiveness can vary by location. Most rural areas remain effectively disconnected from the national hotline.
+
+In time-critical situations, every second matters.
 
 ## Our Solution
 
