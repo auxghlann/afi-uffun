@@ -1,7 +1,9 @@
 # uffun - Centralized Emergency Routing Hub
 
+*Every second counts.*
+
 ## Domain: Intelligent Systems and Data 
-UFFUN.AI is an AI-powered emergency response and call management platform built for the Philippine context, where callers often face too many local hotline numbers and unclear routing paths during emergencies.
+UFFUN is an AI-powered emergency response and call management platform built for the Philippine context, where callers often face too many local hotline numbers and unclear routing paths during emergencies.
 
 ## Problem We Addressed
 
@@ -179,6 +181,7 @@ npm run dev
 - This project is currently in **simulation mode** for dispatch.
 - Voice call ingestion is not yet enabled; input is text-based.
 - Auth is demo-grade and does not yet use secure password hashing/token lifecycle.
+- Mock data for hotlines and emergency types.
 - Geocoding/routing logic can be expanded with richer regional responder data.
 - Language support is currently limited to **English and Tagalog**.
 
